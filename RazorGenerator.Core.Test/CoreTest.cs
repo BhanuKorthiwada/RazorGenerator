@@ -10,11 +10,13 @@ namespace RazorGenerator.Core.Test
 {
     public class CoreTest
     {
-        private static readonly string[] _testNames = new[] 
-        { 
+        private const string Version3OutputFolder = "Output_v3";
+
+        private static readonly string[] TestNames = new[]
+        {
             "WebPageTest",
             "WebPageHelperTest",
-             "MvcViewTest",
+            "MvcViewTest",
             "MvcHelperTest",
             "TemplateTest",
             "_ViewStart",
@@ -25,16 +27,22 @@ namespace RazorGenerator.Core.Test
             "SuffixTransformerTest"
         };
 
+        public static IEnumerable<object[]> Version3Tests
+        {
+            get
+            {
+                return TestNames.Select(testName => new object[] { testName });
+            }
+        }
+
         [Theory]
-        [MemberData("V1Tests")]
-        [MemberData("V2Tests")]
-        [MemberData("V3Tests")]
-        public void TestTransformerType(string testName, RazorRuntime runtime)
+        [MemberData(nameof(Version3Tests))]
+        public void TestTransformerType(string testName)
         {
             string workingDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
             try
             {
-                using (var razorGenerator = new HostManager(workingDirectory, loadExtensions: false, defaultRuntime: runtime, assemblyDirectory: Environment.CurrentDirectory))
+                using (var razorGenerator = new HostManager(workingDirectory, loadExtensions: false, defaultRuntime: RazorRuntime.Version3, assemblyDirectory: Environment.CurrentDirectory))
                 {
                     string inputFile = SaveInputFile(workingDirectory, testName);
                     var host = razorGenerator.CreateHost(inputFile, testName + ".cshtml", string.Empty);
@@ -42,7 +50,7 @@ namespace RazorGenerator.Core.Test
                     host.EnableLinePragmas = false;
 
                     var output = host.GenerateCode();
-                    AssertOutput(testName, output, runtime);
+                    AssertOutput(testName, output);
                 }
             }
             finally
@@ -58,30 +66,6 @@ namespace RazorGenerator.Core.Test
 
         }
 
-        public static IEnumerable<object[]> V1Tests
-        {
-            get
-            {
-                return _testNames.Select(c => new object[] { c, RazorRuntime.Version1 });
-            }
-        }
-
-        public static IEnumerable<object[]> V2Tests
-        {
-            get
-            {
-                return _testNames.Select(c => new object[] { c, RazorRuntime.Version2 });
-            }
-        }
-
-        public static IEnumerable<object[]> V3Tests
-        {
-            get
-            {
-                return _testNames.Select(c => new object[] { c, RazorRuntime.Version3 });
-            }
-        }
-
         private static string SaveInputFile(string outputDirectory, string testName)
         {
             if (!Directory.Exists(outputDirectory))
@@ -93,9 +77,9 @@ namespace RazorGenerator.Core.Test
             return outputFile;
         }
 
-        private static void AssertOutput(string testName, string output, RazorRuntime runtime)
+        private static void AssertOutput(string testName, string output)
         {
-            var expectedContent = GetManifestFileContent(testName, "Output_v" + (int)runtime);
+            var expectedContent = GetManifestFileContent(testName, Version3OutputFolder);
             output = Regex.Replace(output, @"Runtime Version:[\d.]*", "Runtime Version:N.N.NNNNN.N")
                           .Replace(typeof(HostManager).Assembly.GetName().Version.ToString(), "v.v.v.v");
 

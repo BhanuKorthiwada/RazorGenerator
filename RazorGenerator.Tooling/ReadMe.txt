@@ -1,7 +1,7 @@
 ﻿Most of the code in the VSIX is standard boilerplate that comes from the Single File Generator Sample Deep Dive sample: http://code.msdn.microsoft.com/sfgdd.
 
-The tool consists of 3 types of generators
-* RazorHelperGenerator [ASP.NET Web Pages] - Generates types derived from System.Web.WebPages.HelperPage that are meant for packaging cshtml helper files into an assembly.
-* RazorClassGenerator [ASP.NET Web Pages]- Generates types derived from System.Web.WebPages.WebPage that are best suited for Application Parts (_Admin modules)
-* RazorMvcHelperGenerator [ASP.NET MVC] - Generates static types that can be used to create Mvc extension methods.
+The supported fork surface consists of MVC 5 / Razor 3 generators:
+* MvcView - Generates precompiled ASP.NET MVC views.
+* MvcHelper - Generates static types that can be used to create MVC extension methods.
+* Template - Generates standalone preprocessed Razor templates.
 

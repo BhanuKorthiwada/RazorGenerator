@@ -1,30 +1,40 @@
 # RazorGenerator
 
-RazorGenerator.Mvc: [![NuGet Status](http://img.shields.io/nuget/v/RazorGenerator.Mvc.svg?style=flat-square)](https://www.nuget.org/packages/RazorGenerator.Mvc)
+This fork is being modernized for classic ASP.NET MVC applications that still
+use RazorGenerator-generated files, with a support floor of .NET Framework 4.7.2
+and current Visual Studio tooling. See [SUPPORT.md](SUPPORT.md) for the support
+policy.
 
-RazorGenerator.MsBuild: [![NuGet Status](http://img.shields.io/nuget/v/RazorGenerator.MsBuild.svg?style=flat-square)](https://www.nuget.org/packages/RazorGenerator.MsBuild)
+The public package and VSIX identities have not been renamed yet. Do not publish
+forked packages under the upstream RazorGenerator IDs.
 
-RazorGenerator.Testing: [![NuGet Status](http://img.shields.io/nuget/v/RazorGenerator.Testing.svg?style=flat-square)](https://www.nuget.org/packages/RazorGenerator.Testing)
+## Build
 
-RazorGenerator.Templating: [![NuGet Status](http://img.shields.io/nuget/v/RazorGenerator.Templating.svg?style=flat-square)](https://www.nuget.org/packages/RazorGenerator.Templating)
+Run the default verification build from PowerShell:
 
-TeamCity Build Status: [![Build status](http://razorgen-ci.cloudapp.net/app/rest/builds/buildType:\(id:RazorGenerator_RazorGenerator\)/statusIcon)](http://razorgen-ci.cloudapp.net/viewType.html?buildTypeId=btN&guest=1)
+```powershell
+.\build.ps1 -Target Verify -Configuration Release
+```
 
+The Cake build restores packages, builds the VSIX/MSBuild packaging path,
+validates committed RazorGenerator-generated files, and writes release artifacts
+to `artifacts/`. CI runs the same target on the VS 2026 GitHub Actions image.
 
 This is a Custom Tool for Visual Studio that allows processing Razor files at design time instead of runtime, allowing them to be built into an assembly for simpler reuse and distribution. 
 
-Note that this tool currently only supports C#. VB support could probably be done if someone wants to help out with it!
+This fork is focused on C# MVC 5 / Razor 3 usage. Legacy MVC3/Razor1,
+MVC4/Razor2, and WebPages application-part paths are no longer supported.
 
 ## Installation instructions
 
-It’s on the VS extension gallery, so install it from there. It’s called “Razor Generator” (not to be confused with “Razor Single File Generator for MVC”).
+For this fork, build the VSIX with `.\build.ps1 -Target Verify` and install the
+VSIX from `artifacts/RazorGenerator.vsix`. The upstream Marketplace listing may
+not expose a VS 2026-compatible install.
 
 ## Generator Types
 
 - **`MvcHelper`**: Creates a static type that is best suited for writing Mvc specific helper methods.
 - **`MvcView`**: Create a WebViewPage which allows the use of precompiled MVC views.
-- **`WebPage`**: Creates a WebPage type that can be used as WebPages Application Part (such as _Admin and RazorDebugger).
-- **`WebPagesHelper`**: Creates a HelperPage type that is suited for precompiling and distributing WebPages helper.
 - **`Template`**: Generator based on T4 preprocessed template.
 
 ## Usage in an MVC app
@@ -32,7 +42,7 @@ It’s on the VS extension gallery, so install it from there. It’s called “R
 - Install the 'RazorGenerator.Mvc' package, which registers a special view engine
 - Go to an MVC Razor view's property and set the **`Custom Tool`** to **`RazorGenerator`**
 - Optionally specify a value for `Custom Tool Namespace` to specify a namespace for the generated file. The project namespace is used by default.
-- Optionally specify one of the generators in the first line of your Razor file. A generator declaration line looks like this: `@* Generator: MvcHelper *@`. If you don't specify this, a generator is picked based on convention (e.g. files under Views are treated as `MvcViews`)  NOTE: The selection has other criteria such as detecting "Helper" in the filename and choosing **`WebPagesHelper`** for those.
+- Optionally specify one of the generators in the first line of your Razor file. A generator declaration line looks like this: `@* Generator: MvcHelper *@`. If you don't specify this, a generator is picked based on convention (e.g. files under Views are treated as `MvcViews`).
 - You'll see a generated .cs file under the .cshtml file, which will be used at runtime instead of the .cshtml file
 - You can also go to the nuget Package Manager Console and run `Enable-RazorGenerator` to enable the Custom Tool on all the views.
 - And to cause all the views to be regenerated, go to the nuget Package Manager Console and run `Redo-RazorGenerator`. This is useful when you update the generator package and it needs to generate different code.

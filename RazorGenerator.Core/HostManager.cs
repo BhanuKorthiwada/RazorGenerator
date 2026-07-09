@@ -15,12 +15,11 @@ namespace RazorGenerator.Core
     {
         private readonly string _baseDirectory;
         private readonly bool _loadExtensions;
-        private readonly RazorRuntime _defaultRuntime;
         private readonly string _assemblyDirectory;
         private ComposablePartCatalog _catalog;
 
         public HostManager(string baseDirectory)
-            : this(baseDirectory, loadExtensions: true, defaultRuntime: RazorRuntime.Version1, assemblyDirectory: GetAssesmblyDirectory())
+            : this(baseDirectory, loadExtensions: true, defaultRuntime: RazorRuntime.Version3, assemblyDirectory: GetAssesmblyDirectory())
         {
         }
 
@@ -28,7 +27,6 @@ namespace RazorGenerator.Core
         {
             _loadExtensions = loadExtensions;
             _baseDirectory = baseDirectory;
-            _defaultRuntime = defaultRuntime;
             _assemblyDirectory = assemblyDirectory;
 
             // Repurposing loadExtensions to mean unit-test scenarios. Don't bind to the AssemblyResolve in unit tests
@@ -55,11 +53,9 @@ namespace RazorGenerator.Core
             directives["VsNamespace"] = vsNamespace;
 
             string guessedHost = null;
-            RazorRuntime runtime = _defaultRuntime;
             GuessedHost value;
             if (TryGuessHost(_baseDirectory, projectRelativePath, out value))
             {
-                runtime = value.Runtime;
                 guessedHost = value.Host;
             }
 
@@ -69,27 +65,9 @@ namespace RazorGenerator.Core
                 // Determine the host and runtime from the file \ project
                 hostName = guessedHost;
             }
-            string razorVersion;
-            if (directives.TryGetValue("RazorVersion", out razorVersion))
-            {
-                // If the directive explicitly specifies a host, use that.
-                switch (razorVersion)
-                {
-                    case "1":
-                        runtime = RazorRuntime.Version1;
-                        break;
-                    case "2":
-                        runtime = RazorRuntime.Version2;
-                        break;
-                    default:
-                        runtime = RazorRuntime.Version3;
-                        break;
-                }
-            }
-
             if (_catalog == null)
             {
-                _catalog = InitCompositionCatalog(_baseDirectory, _loadExtensions, runtime);
+                _catalog = InitCompositionCatalog(_baseDirectory, _loadExtensions);
             }
 
             using (var container = new CompositionContainer(_catalog))
@@ -121,10 +99,10 @@ namespace RazorGenerator.Core
             return codeTransformer;
         }
 
-        private ComposablePartCatalog InitCompositionCatalog(string baseDirectory, bool loadExtensions, RazorRuntime runtime)
+        private ComposablePartCatalog InitCompositionCatalog(string baseDirectory, bool loadExtensions)
         {
             // Retrieve available hosts
-            var hostsAssembly = GetAssembly(runtime);
+            var hostsAssembly = GetAssembly();
             var catalog = new AggregateCatalog(new AssemblyCatalog(hostsAssembly));
 
             if (loadExtensions)
@@ -152,14 +130,13 @@ namespace RazorGenerator.Core
                    select export.ContractName;
         }
 
-        private Assembly GetAssembly(RazorRuntime runtime)
+        private Assembly GetAssembly()
         {
-            int runtimeValue = (int)runtime;
             // TODO: Check if we can switch to using CodeBase instead of Location
 
-            // Look for the assembly at vX\RazorGenerator.vX.dll. If not, assume it is at RazorGenerator.vX.dll
-            string runtimeDirectory = Path.Combine(_assemblyDirectory, "v" + runtimeValue);
-            string assemblyName = "RazorGenerator.Core.v" + runtimeValue + ".dll";
+            // Look for the assembly at v3\RazorGenerator.Core.v3.dll. If not, assume it is at RazorGenerator.Core.v3.dll
+            string runtimeDirectory = Path.Combine(_assemblyDirectory, "v3");
+            string assemblyName = "RazorGenerator.Core.v3.dll";
             string runtimeDirPath = Path.Combine(runtimeDirectory, assemblyName);
             if (File.Exists(runtimeDirPath))
             {
@@ -175,16 +152,15 @@ namespace RazorGenerator.Core
 
         internal static bool TryGuessHost(string projectRoot, string projectRelativePath, out GuessedHost host)
         {
-            RazorRuntime runtime;
-            bool isMvcProject = IsMvcProject(projectRoot, out runtime) ?? false;
+            bool isMvcProject = IsMvcProject(projectRoot) ?? false;
             if (isMvcProject)
             {
                 var mvcHelperRegex = new Regex(@"(^|\\)Views(\\.*)+Helpers?", RegexOptions.ExplicitCapture | RegexOptions.IgnoreCase);
                 if (mvcHelperRegex.IsMatch(projectRelativePath))
                 {
-                    host = new GuessedHost("MvcHelper", runtime);
+                    host = new GuessedHost("MvcHelper");
                 }
-                host = new GuessedHost("MvcView", runtime);
+                host = new GuessedHost("MvcView");
                 return true;
             }
 
@@ -192,9 +168,8 @@ namespace RazorGenerator.Core
             return false;
         }
 
-        private static bool? IsMvcProject(string projectRoot, out RazorRuntime razorRuntime)
+        private static bool? IsMvcProject(string projectRoot)
         {
-            razorRuntime = RazorRuntime.Version1;
             try
             {
                 var projectFile = Directory.EnumerateFiles(projectRoot, "*.csproj").FirstOrDefault();
@@ -205,21 +180,6 @@ namespace RazorGenerator.Core
                 if (projectFile != null)
                 {
                     var content = File.ReadAllText(projectFile);
-                    if ((content.IndexOf("System.Web.Mvc, Version=4", StringComparison.OrdinalIgnoreCase) != -1) ||
-                        (content.IndexOf("System.Web.Razor, Version=2", StringComparison.OrdinalIgnoreCase) != -1) ||
-                        (content.IndexOf("Microsoft.AspNet.Mvc.4", StringComparison.OrdinalIgnoreCase) != -1))
-                    {
-                        // The project references Razor v2
-                        razorRuntime = RazorRuntime.Version2;
-                    }
-                    else if ((content.IndexOf("System.Web.Mvc, Version=5", StringComparison.OrdinalIgnoreCase) != -1) ||
-                        (content.IndexOf("System.Web.Razor, Version=3", StringComparison.OrdinalIgnoreCase) != -1) ||
-                        (content.IndexOf("Microsoft.AspNet.Mvc.5", StringComparison.OrdinalIgnoreCase) != -1))
-                    {
-                        // The project references Razor v3
-                        razorRuntime = RazorRuntime.Version3;
-                    }
-
                     return content.IndexOf("System.Web.Mvc", StringComparison.OrdinalIgnoreCase) != -1;
                 }
             }
@@ -241,7 +201,12 @@ namespace RazorGenerator.Core
         private Assembly OnAssemblyResolve(object sender, ResolveEventArgs eventArgs)
         {
             var nameToResolve = new AssemblyName(eventArgs.Name);
-            string path = Path.Combine(_assemblyDirectory, "v" + nameToResolve.Version.Major, nameToResolve.Name) + ".dll";
+            string path = Path.Combine(_assemblyDirectory, "v3", nameToResolve.Name) + ".dll";
+            if (File.Exists(path))
+            {
+                return Assembly.LoadFrom(path);
+            }
+            path = Path.Combine(_assemblyDirectory, nameToResolve.Name) + ".dll";
             if (File.Exists(path))
             {
                 return Assembly.LoadFrom(path);
@@ -250,7 +215,7 @@ namespace RazorGenerator.Core
         }
 
         /// <remarks>
-        /// Attempts to locate where the RazorGenerator.Core assembly is being loaded from. This allows us to locate the v1 and v2 assemblies and the corresponding 
+        /// Attempts to locate where the RazorGenerator.Core assembly is being loaded from. This allows us to locate the v3 assembly and the corresponding
         /// System.Web.* binaries
         /// Assembly.CodeBase points to the original location when the file is shadow copied, so we'll attempt to use that first.
         /// </remarks>
@@ -280,15 +245,12 @@ namespace RazorGenerator.Core
 
         internal class GuessedHost
         {
-            public GuessedHost(string host, RazorRuntime runtime)
+            public GuessedHost(string host)
             {
                 Host = host;
-                Runtime = runtime;
             }
 
             public string Host { get; private set; }
-
-            public RazorRuntime Runtime { get; private set; }
         }
     }
 }

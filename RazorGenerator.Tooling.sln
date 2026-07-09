@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
 VisualStudioVersion = 12.0.30410.0
@@ -9,20 +9,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RazorGenerator.Core.Test", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RazorGenerator.Tooling", "RazorGenerator.Tooling\RazorGenerator.Tooling.csproj", "{461089E7-008E-4737-BA17-E1FCD1CC3D0E}"
 	ProjectSection(ProjectDependencies) = postProject
-		{8AC6362A-CF3F-441B-B0B4-B9907F4CBB46} = {8AC6362A-CF3F-441B-B0B4-B9907F4CBB46}
-		{1A99F351-138E-440B-A4E9-B8651FEEA593} = {1A99F351-138E-440B-A4E9-B8651FEEA593}
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RazorGenerator.MsBuild", "RazorGenerator.MsBuild\RazorGenerator.MsBuild.csproj", "{A229A158-CFD5-4D05-945D-A3192F5C895B}"
 	ProjectSection(ProjectDependencies) = postProject
-		{8AC6362A-CF3F-441B-B0B4-B9907F4CBB46} = {8AC6362A-CF3F-441B-B0B4-B9907F4CBB46}
-		{1A99F351-138E-440B-A4E9-B8651FEEA593} = {1A99F351-138E-440B-A4E9-B8651FEEA593}
 		{1B52667F-2486-4F11-ADAF-4C223241C8DF} = {1B52667F-2486-4F11-ADAF-4C223241C8DF}
 	EndProjectSection
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RazorGenerator.Core.v1", "RazorGenerator.Core.v1\RazorGenerator.Core.v1.csproj", "{1A99F351-138E-440B-A4E9-B8651FEEA593}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RazorGenerator.Core.v2", "RazorGenerator.Core.v2\RazorGenerator.Core.v2.csproj", "{8AC6362A-CF3F-441B-B0B4-B9907F4CBB46}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RazorGenerator.Core.v3", "RazorGenerator.Core.v3\RazorGenerator.Core.v3.csproj", "{1B52667F-2486-4F11-ADAF-4C223241C8DF}"
 EndProject
@@ -76,26 +68,6 @@ Global
 		{A229A158-CFD5-4D05-945D-A3192F5C895B}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{A229A158-CFD5-4D05-945D-A3192F5C895B}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{A229A158-CFD5-4D05-945D-A3192F5C895B}.Release|x86.ActiveCfg = Release|Any CPU
-		{1A99F351-138E-440B-A4E9-B8651FEEA593}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1A99F351-138E-440B-A4E9-B8651FEEA593}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1A99F351-138E-440B-A4E9-B8651FEEA593}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
-		{1A99F351-138E-440B-A4E9-B8651FEEA593}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
-		{1A99F351-138E-440B-A4E9-B8651FEEA593}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{1A99F351-138E-440B-A4E9-B8651FEEA593}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1A99F351-138E-440B-A4E9-B8651FEEA593}.Release|Any CPU.Build.0 = Release|Any CPU
-		{1A99F351-138E-440B-A4E9-B8651FEEA593}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{1A99F351-138E-440B-A4E9-B8651FEEA593}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{1A99F351-138E-440B-A4E9-B8651FEEA593}.Release|x86.ActiveCfg = Release|Any CPU
-		{8AC6362A-CF3F-441B-B0B4-B9907F4CBB46}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{8AC6362A-CF3F-441B-B0B4-B9907F4CBB46}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{8AC6362A-CF3F-441B-B0B4-B9907F4CBB46}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
-		{8AC6362A-CF3F-441B-B0B4-B9907F4CBB46}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
-		{8AC6362A-CF3F-441B-B0B4-B9907F4CBB46}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{8AC6362A-CF3F-441B-B0B4-B9907F4CBB46}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{8AC6362A-CF3F-441B-B0B4-B9907F4CBB46}.Release|Any CPU.Build.0 = Release|Any CPU
-		{8AC6362A-CF3F-441B-B0B4-B9907F4CBB46}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{8AC6362A-CF3F-441B-B0B4-B9907F4CBB46}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{8AC6362A-CF3F-441B-B0B4-B9907F4CBB46}.Release|x86.ActiveCfg = Release|Any CPU
 		{1B52667F-2486-4F11-ADAF-4C223241C8DF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{1B52667F-2486-4F11-ADAF-4C223241C8DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1B52667F-2486-4F11-ADAF-4C223241C8DF}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
@@ -109,8 +81,5 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(TestCaseManagementSettings) = postSolution
-		CategoryFile = RazorGenerator.Tooling.vsmdi
 	EndGlobalSection
 EndGlobal

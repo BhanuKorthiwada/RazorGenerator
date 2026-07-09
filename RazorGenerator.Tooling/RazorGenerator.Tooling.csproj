@@ -10,7 +10,8 @@
     <RootNamespace>RazorGenerator</RootNamespace>
     <AssemblyName>RazorGenerator</AssemblyName>
     <StartAction>Program</StartAction>
-    <StartProgram>$(MSBuildProgramFiles32)\Microsoft Visual Studio $(VisualStudioVersion)\Common7\IDE\devenv.exe</StartProgram>
+    <StartProgram Condition="'$(DevEnvDir)' != ''">$(DevEnvDir)devenv.exe</StartProgram>
+    <StartProgram Condition="'$(StartProgram)' == ''">devenv.exe</StartProgram>
     <StartArguments>/rootsuffix Exp /log</StartArguments>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <VsixType>v3</VsixType>
@@ -284,14 +285,6 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\RazorGenerator.Core.v1\RazorGenerator.Core.v1.csproj">
-      <Project>{1a99f351-138e-440b-a4e9-b8651feea593}</Project>
-      <Name>RazorGenerator.Core.v1</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\RazorGenerator.Core.v2\RazorGenerator.Core.v2.csproj">
-      <Project>{8ac6362a-cf3f-441b-b0b4-b9907f4cbb46}</Project>
-      <Name>RazorGenerator.Core.v2</Name>
-    </ProjectReference>
     <ProjectReference Include="..\RazorGenerator.Core.v3\RazorGenerator.Core.v3.csproj">
       <Project>{1b52667f-2486-4f11-adaf-4c223241c8df}</Project>
       <Name>RazorGenerator.Core.v3</Name>
@@ -323,19 +316,19 @@
     <RegisterWithCodebase>true</RegisterWithCodebase>
   </PropertyGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
-  <Import Condition="Exists($(VsSdkTargets))" Project="$(VsSdkTargets)" />
   <PropertyGroup>
-    <CreateVsixContainerDependsOn>$(CreateVsixContainerDependsOn);_CreateSourceItems</CreateVsixContainerDependsOn>
+    <VsSdkTargets Condition="'$(VsSdkTargets)' == '' and Exists('..\packages\Microsoft.VSSDK.BuildTools.17.0.4194-preview4\tools\VSSDK\Microsoft.VsSDK.targets')">..\packages\Microsoft.VSSDK.BuildTools.17.0.4194-preview4\tools\VSSDK\Microsoft.VsSDK.targets</VsSdkTargets>
+    <VsSdkTargets Condition="'$(VsSdkTargets)' == '' and '$(VSToolsPath)' != '' and Exists('$(VSToolsPath)\VSSDK\Microsoft.VsSDK.targets')">$(VSToolsPath)\VSSDK\Microsoft.VsSDK.targets</VsSdkTargets>
   </PropertyGroup>
-  <!-- Copy the Core.v1 and v2 binaries inside the v1 and v2 directories of the vsix. This is to resolve bug 72 -->
+  <Import Project="$(VsSdkTargets)" Condition="'$(VsSdkTargets)' != '' and Exists('$(VsSdkTargets)')" />
+  <PropertyGroup>
+    <GetVsixSourceItemsDependsOn>$(GetVsixSourceItemsDependsOn);_CreateSourceItems</GetVsixSourceItemsDependsOn>
+  </PropertyGroup>
+  <!-- Copy the Razor 3 host binaries inside the v3 directory of the vsix. -->
   <Target Name="_CreateSourceItems">
     <ItemGroup>
-      <VSIXSourceItem Include="LICENSE.txt" />
-      <VSIXSourceItem Include="..\RazorGenerator.Core.v1\bin\$(Configuration)\*.dll" Exclude="..\RazorGenerator.Core.v1\bin\$(Configuration)\RazorGenerator.Core.dll">
-        <VSIXSubPath>v1</VSIXSubPath>
-      </VSIXSourceItem>
-      <VSIXSourceItem Include="..\RazorGenerator.Core.v2\bin\$(Configuration)\*.dll" Exclude="..\RazorGenerator.Core.v2\bin\$(Configuration)\RazorGenerator.Core.dll">
-        <VSIXSubPath>v2</VSIXSubPath>
+      <VSIXSourceItem Include="..\LICENSE.txt">
+        <TargetPath>LICENSE.txt</TargetPath>
       </VSIXSourceItem>
       <VSIXSourceItem Include="..\RazorGenerator.Core.v3\bin\$(Configuration)\*.dll" Exclude="..\RazorGenerator.Core.v3\bin\$(Configuration)\RazorGenerator.Core.dll">
         <VSIXSubPath>v3</VSIXSubPath>
@@ -356,7 +349,6 @@
     <MakeDir Directories="$(VsixOut)" Condition=" !Exists('$(VsixOut)') " />
     <Copy SourceFiles="@(FilesToCopy)" DestinationFolder="$(VsixOut)" />
   </Target>
-  <Import Project="$(VSToolsPath)\VSSDK\Microsoft.VsSDK.targets" Condition="'$(VSToolsPath)' != ''" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>Ce projet fait référence à des packages NuGet qui sont manquants sur cet ordinateur. Utilisez l'option de restauration des packages NuGet pour les télécharger. Pour plus d'informations, consultez http://go.microsoft.com/fwlink/?LinkID=322105. Le fichier manquant est : {0}.</ErrorText>

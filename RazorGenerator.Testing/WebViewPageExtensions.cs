@@ -57,7 +57,21 @@ namespace RazorGenerator.Testing
             dynamicPageContext.BodyAction = (Action<TextWriter>)(w => { });
 
             view.AsDynamic().PageContext = webPageContext;
-            view.Execute();
+
+            var previousHttpContext = HttpContext.Current;
+            if (previousHttpContext == null)
+            {
+                HttpContext.Current = CreateHttpContextForStaticHelpers();
+            }
+
+            try
+            {
+                view.Execute();
+            }
+            finally
+            {
+                HttpContext.Current = previousHttpContext;
+            }
 
             return writer.ToString();
         }
@@ -156,6 +170,13 @@ namespace RazorGenerator.Testing
                     ViewEngines.Engines.Insert(0, _viewEngine);
                 }
             }
+        }
+
+        private static HttpContext CreateHttpContextForStaticHelpers()
+        {
+            var request = new HttpRequest("default.aspx", "http://localhost/default.aspx", String.Empty);
+            var response = new HttpResponse(TextWriter.Null);
+            return new HttpContext(request, response);
         }
         
         class DummyViewEngine : IViewEngine

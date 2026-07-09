@@ -42,35 +42,13 @@ $resolvedRoot = [System.IO.Path]::GetFullPath((Resolve-Path -LiteralPath $RootPa
 $excludedSegmentSet = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
 @(".git", ".vs", "bin", "obj", "packages", "artifacts") | ForEach-Object { [void]$excludedSegmentSet.Add($_) }
 
-function Test-ContainsRazorGeneratorMarker {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$FilePath
-    )
-
-    $reader = [System.IO.File]::OpenText($FilePath)
-    try {
-        for ($lineIndex = 0; $lineIndex -lt 8 -and -not $reader.EndOfStream; $lineIndex++) {
-            $line = $reader.ReadLine()
-            if ($line -match "@\*\s*Generator\s*:") {
-                return $true
-            }
-        }
-    }
-    finally {
-        $reader.Dispose()
-    }
-
-    return $false
-}
-
 function Test-IsExcludedPath {
     param(
         [Parameter(Mandatory = $true)]
         [string]$FilePath
     )
 
-    $relativePath = $FilePath.Substring($resolvedRoot.Length).TrimStart('\', '/')
+    $relativePath = Get-ProjectRelativePath -FilePath $FilePath
     if ([string]::IsNullOrWhiteSpace($relativePath)) {
         return $false
     }
@@ -173,27 +151,6 @@ function Get-ExpectedGeneratedPaths {
     return $expectedPaths.ToArray()
 }
 
-function Get-ExistingGeneratedFiles {
-    param(
-        [Parameter(Mandatory = $true)]
-        [System.IO.FileInfo]$SourceFile,
-
-        [Parameter()]
-        [string[]]$ProjectDeclaredOutputs = @()
-    )
-
-    $expectedPaths = Get-ExpectedGeneratedPaths -SourceFile $SourceFile -ProjectDeclaredOutputs $ProjectDeclaredOutputs
-    $existingPaths = [System.Collections.Generic.List[string]]::new()
-
-    foreach ($expectedPath in $expectedPaths) {
-        if (Test-Path -LiteralPath $expectedPath -PathType Leaf) {
-            $existingPaths.Add([System.IO.Path]::GetFullPath($expectedPath))
-        }
-    }
-
-    return $existingPaths.ToArray()
-}
-
 $projectDeclaredOutputsBySource = Get-ProjectDeclaredGeneratedOutputs
 $sourceFiles = Get-ChildItem -LiteralPath $resolvedRoot -Recurse -File -Filter *.cshtml |
     Where-Object { -not (Test-IsExcludedPath -FilePath $_.FullName) } |
@@ -208,11 +165,11 @@ foreach ($sourceFile in $sourceFiles) {
         @($projectDeclaredOutputsBySource[$sourceFile.FullName]) |
             Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
     )
-    $hasMarker = Test-ContainsRazorGeneratorMarker -FilePath $sourceFile.FullName
+    $expectedGeneratedPaths = Get-ExpectedGeneratedPaths -SourceFile $sourceFile -ProjectDeclaredOutputs $projectDeclaredOutputs
     $existingGeneratedFiles = @(
-        @(
-            Get-ExistingGeneratedFiles -SourceFile $sourceFile -ProjectDeclaredOutputs $projectDeclaredOutputs
-        ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+        $expectedGeneratedPaths |
+            Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } |
+            ForEach-Object { [System.IO.Path]::GetFullPath($_) }
     )
 
     $shouldValidate = $projectDeclaredOutputs.Count -gt 0 -or $existingGeneratedFiles.Count -gt 0
@@ -226,8 +183,7 @@ foreach ($sourceFile in $sourceFiles) {
     if ($existingGeneratedFiles.Count -eq 0) {
         $missingOutputFailures.Add([pscustomobject]@{
             Source = $relativeSourcePath
-            Marker = $hasMarker
-            ExpectedPaths = Get-ExpectedGeneratedPaths -SourceFile $sourceFile -ProjectDeclaredOutputs $projectDeclaredOutputs
+            ExpectedPaths = $expectedGeneratedPaths
         })
         continue
     }
@@ -238,7 +194,7 @@ foreach ($sourceFile in $sourceFiles) {
             if ($sourceFile.LastWriteTimeUtc -gt $generatedFile.LastWriteTimeUtc) {
                 $staleOutputFailures.Add([pscustomobject]@{
                     Source = $relativeSourcePath
-                    Generated = $generatedFilePath.Substring($resolvedRoot.Length).TrimStart('\', '/')
+                    Generated = Get-ProjectRelativePath -FilePath $generatedFilePath
                     SourceUtc = $sourceFile.LastWriteTimeUtc
                     GeneratedUtc = $generatedFile.LastWriteTimeUtc
                 })
@@ -254,7 +210,7 @@ if ($missingOutputFailures.Count -gt 0) {
     foreach ($failure in $missingOutputFailures) {
         Write-Host ("  - {0}" -f $failure.Source) -ForegroundColor Red
         foreach ($expectedPath in $failure.ExpectedPaths) {
-            $displayPath = $expectedPath.Substring($resolvedRoot.Length).TrimStart('\', '/')
+            $displayPath = Get-ProjectRelativePath -FilePath $expectedPath
             Write-Host ("      expected: {0}" -f $displayPath) -ForegroundColor Red
         }
     }

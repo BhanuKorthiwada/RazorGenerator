@@ -17,20 +17,13 @@ var checksumsFile = IoPath.Combine(artifacts, "SHA256SUMS.txt");
 var toolingSolution = IoPath.Combine(root, "RazorGenerator.Tooling.sln");
 var runtimeSolution = IoPath.Combine(root, "RazorGenerator.Runtime.sln");
 var coreTestProject = IoPath.Combine(root, "RazorGenerator.Core.Test", "RazorGenerator.Core.Test.csproj");
-var coreV3PackagesConfig = IoPath.Combine(root, "RazorGenerator.Core.v3", "packages.config");
-var coreTestPackagesConfig = IoPath.Combine(root, "RazorGenerator.Core.Test", "packages.config");
 var msBuildProject = IoPath.Combine(root, "RazorGenerator.MsBuild", "RazorGenerator.MsBuild.csproj");
-var toolingProject = IoPath.Combine(root, "RazorGenerator.Tooling", "RazorGenerator.Tooling.csproj");
 var nugetExe = Argument("nuget-exe", Environment.GetEnvironmentVariable("NUGET_EXE") ?? IoPath.Combine(root, ".tools", "nuget.exe"));
 var powershell = Environment.GetEnvironmentVariable("POWERSHELL_EXE") ?? "powershell";
 var generatedFileValidator = IoPath.Combine(root, "tools", "validate-generated-files.ps1");
 var generatedFileValidatorTests = IoPath.Combine(root, "tools", "tests", "validate-generated-files.tests.ps1");
-var vs = FindVisualStudio();
-var msbuild = vs.MSBuildPath;
+VisualStudioBuild vs = null;
 var msbuildVerbosity = ToMSBuildVerbosity(verbosity);
-
-Information("Using MSBuild: {0}", msbuild);
-Information("Using VisualStudioVersion={0}", vs.VisualStudioVersion);
 
 Task("Clean")
     .Does(() =>
@@ -57,14 +50,6 @@ Task("RestoreRuntime")
     NuGetRestore(runtimeSolution);
 });
 
-Task("RestoreCoreTest")
-    .Does(() =>
-{
-    EnsureNuGet();
-    NuGetRestorePackagesConfig(coreV3PackagesConfig);
-    NuGetRestorePackagesConfig(coreTestPackagesConfig);
-});
-
 Task("BuildTooling")
     .IsDependentOn("Restore")
     .Does(() =>
@@ -76,7 +61,6 @@ Task("BuildTooling")
 });
 
 Task("TestCore")
-    .IsDependentOn("RestoreCoreTest")
     .IsDependentOn("BuildTooling")
     .Does(() =>
 {
@@ -89,7 +73,6 @@ Task("Pack")
     .IsDependentOn("BuildTooling")
     .Does(() =>
 {
-    MSBuild(msBuildProject, "Build");
     RunProcess(
         nugetExe,
         String.Join(" ", new[]
@@ -112,7 +95,6 @@ Task("Vsix")
     .IsDependentOn("BuildTooling")
     .Does(() =>
 {
-    MSBuild(toolingProject, "Build", "/p:BypassVsixValidation=true");
     RequireArtifact(IoPath.Combine(artifacts, "RazorGenerator.vsix"));
     RequireZipEntry(IoPath.Combine(artifacts, "RazorGenerator.vsix"), "LICENSE.txt");
 });
@@ -181,24 +163,9 @@ void NuGetRestore(string solution)
         }));
 }
 
-void NuGetRestorePackagesConfig(string packagesConfig)
-{
-    RunProcess(
-        nugetExe,
-        String.Join(" ", new[]
-        {
-            "restore",
-            Quote(packagesConfig),
-            "-PackagesDirectory",
-            Quote(IoPath.Combine(root, "packages")),
-            "-NonInteractive",
-            "-Verbosity",
-            "quiet"
-        }));
-}
-
 void MSBuild(string projectOrSolution, string targets, params string[] extraArgs)
 {
+    var visualStudio = GetVisualStudio();
     var args = new List<string>
     {
         Quote(projectOrSolution),
@@ -207,11 +174,23 @@ void MSBuild(string projectOrSolution, string targets, params string[] extraArgs
         "/t:" + targets,
         "/v:" + msbuildVerbosity,
         "/p:Configuration=" + configuration,
-        "/p:VisualStudioVersion=" + vs.VisualStudioVersion
+        "/p:VisualStudioVersion=" + visualStudio.VisualStudioVersion
     };
 
     args.AddRange(extraArgs.Where(a => !String.IsNullOrWhiteSpace(a)));
-    RunProcess(msbuild, String.Join(" ", args));
+    RunProcess(visualStudio.MSBuildPath, String.Join(" ", args));
+}
+
+VisualStudioBuild GetVisualStudio()
+{
+    if (vs == null)
+    {
+        vs = FindVisualStudio();
+        Information("Using MSBuild: {0}", vs.MSBuildPath);
+        Information("Using VisualStudioVersion={0}", vs.VisualStudioVersion);
+    }
+
+    return vs;
 }
 
 void RunPowerShell(string scriptPath, params string[] scriptArgs)

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
 
-namespace RazorGenerator.Core.Mvc3
+namespace RazorGenerator.Core
 {
     [Export(typeof(IHostProvider))]
     public class RazorHostProvider : IHostProvider

@@ -16,14 +16,16 @@ namespace RazorGenerator.Core
         private readonly string _baseDirectory;
         private readonly bool _loadExtensions;
         private readonly string _assemblyDirectory;
+        private static readonly Regex MvcHelperPathRegex = new Regex(@"(^|\\)Views(\\.*)+Helpers?", RegexOptions.ExplicitCapture | RegexOptions.IgnoreCase);
+        private bool? _isMvcProject;
         private ComposablePartCatalog _catalog;
 
         public HostManager(string baseDirectory)
-            : this(baseDirectory, loadExtensions: true, defaultRuntime: RazorRuntime.Version3, assemblyDirectory: GetAssesmblyDirectory())
+            : this(baseDirectory, loadExtensions: true, assemblyDirectory: GetAssemblyDirectory())
         {
         }
 
-        public HostManager(string baseDirectory, bool loadExtensions, RazorRuntime defaultRuntime, string assemblyDirectory)
+        internal HostManager(string baseDirectory, bool loadExtensions, string assemblyDirectory)
         {
             _loadExtensions = loadExtensions;
             _baseDirectory = baseDirectory;
@@ -54,7 +56,7 @@ namespace RazorGenerator.Core
 
             string guessedHost = null;
             GuessedHost value;
-            if (TryGuessHost(_baseDirectory, projectRelativePath, out value))
+            if (TryGuessHost(projectRelativePath, out value))
             {
                 guessedHost = value.Host;
             }
@@ -153,12 +155,27 @@ namespace RazorGenerator.Core
         internal static bool TryGuessHost(string projectRoot, string projectRelativePath, out GuessedHost host)
         {
             bool isMvcProject = IsMvcProject(projectRoot) ?? false;
+            return TryGuessHost(projectRelativePath, isMvcProject, out host);
+        }
+
+        private bool TryGuessHost(string projectRelativePath, out GuessedHost host)
+        {
+            if (!_isMvcProject.HasValue)
+            {
+                _isMvcProject = IsMvcProject(_baseDirectory) ?? false;
+            }
+
+            return TryGuessHost(projectRelativePath, _isMvcProject.Value, out host);
+        }
+
+        private static bool TryGuessHost(string projectRelativePath, bool isMvcProject, out GuessedHost host)
+        {
             if (isMvcProject)
             {
-                var mvcHelperRegex = new Regex(@"(^|\\)Views(\\.*)+Helpers?", RegexOptions.ExplicitCapture | RegexOptions.IgnoreCase);
-                if (mvcHelperRegex.IsMatch(projectRelativePath))
+                if (MvcHelperPathRegex.IsMatch(projectRelativePath))
                 {
                     host = new GuessedHost("MvcHelper");
+                    return true;
                 }
                 host = new GuessedHost("MvcView");
                 return true;
@@ -219,7 +236,7 @@ namespace RazorGenerator.Core
         /// System.Web.* binaries
         /// Assembly.CodeBase points to the original location when the file is shadow copied, so we'll attempt to use that first.
         /// </remarks>
-        private static string GetAssesmblyDirectory()
+        private static string GetAssemblyDirectory()
         {
             Assembly assembly = Assembly.GetExecutingAssembly();
             Uri uri;

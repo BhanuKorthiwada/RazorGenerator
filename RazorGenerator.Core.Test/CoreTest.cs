@@ -42,7 +42,7 @@ namespace RazorGenerator.Core.Test
             string workingDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
             try
             {
-                using (var razorGenerator = new HostManager(workingDirectory, loadExtensions: false, defaultRuntime: RazorRuntime.Version3, assemblyDirectory: Environment.CurrentDirectory))
+                using (var razorGenerator = new HostManager(workingDirectory, loadExtensions: false, assemblyDirectory: Environment.CurrentDirectory))
                 {
                     string inputFile = SaveInputFile(workingDirectory, testName);
                     var host = razorGenerator.CreateHost(inputFile, testName + ".cshtml", string.Empty);
@@ -64,6 +64,33 @@ namespace RazorGenerator.Core.Test
                 }
             }
 
+        }
+
+        [Theory]
+        [InlineData(@"Views\Helpers\List.cshtml", "MvcHelper")]
+        [InlineData(@"Views\Home\Index.cshtml", "MvcView")]
+        public void GuessHostUsesMvcHelperForMvcHelperPaths(string projectRelativePath, string expectedHost)
+        {
+            string workingDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+            try
+            {
+                Directory.CreateDirectory(workingDirectory);
+                File.WriteAllText(Path.Combine(workingDirectory, "Sample.csproj"), "<Project><ItemGroup><Reference Include=\"System.Web.Mvc\" /></ItemGroup></Project>");
+
+                HostManager.GuessedHost host;
+                Assert.True(HostManager.TryGuessHost(workingDirectory, projectRelativePath, out host));
+                Assert.Equal(expectedHost, host.Host);
+            }
+            finally
+            {
+                try
+                {
+                    Directory.Delete(workingDirectory, recursive: true);
+                }
+                catch
+                {
+                }
+            }
         }
 
         private static string SaveInputFile(string outputDirectory, string testName)
